@@ -1,0 +1,32 @@
+{
+  "name": "dolphin-01",
+  "platform": "windows",
+  "browserType": "anty",
+  "mainWebsite": "",
+  "useragent": {
+    "mode": "manual",
+    "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36"
+  },
+  "webrtc": { "mode": "altered", "ipAddress": null },
+  "canvas": { "mode": "real" },
+  "webgl": { "mode": "real" },
+  "webglInfo": {
+    "mode": "manual",
+    "vendor": "Google Inc. (Intel)",
+    "renderer": "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics Direct3D11 vs_5_0 ps_5_0, D3D11)"
+  },
+  "timezone": { "mode": "manual", "value": "Europe/Berlin" },
+  "locale": { "mode": "manual", "value": "de-DE" },
+  "cpu": { "mode": "manual", "value": 8 },
+  "memory": { "mode": "manual", "value": 8 },
+  "screen": { "mode": "manual", "resolution": "1920x1080x1" },
+  "proxy": {
+    "type": "http",
+    "host": "5.6.7.8",
+    "port": 8080,
+    "login": "dolphinuser",
+    "password": "dolphinpass"
+  },
+  "doNotTrack": false,
+  "osVersion": "10"
+}

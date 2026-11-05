@@ -1,0 +1,54 @@
+{
+  "code": 0,
+  "data": {
+    "list": [
+      {
+        "serial_number": "1",
+        "user_id": "adsp-0001",
+        "name": "Shop-01",
+        "group_id": "1",
+        "group_name": "work",
+        "domain_name": "facebook.com",
+        "username": "siteuser",
+        "remark": "imported from adspower",
+        "sys_app_cate_id": "X",
+        "created_time": "1612520997",
+        "ip": "13.251.172.174",
+        "ip_country": "sg",
+        "password": "",
+        "last_open_time": "1621333030",
+        "user_proxy_config": {
+          "proxy_soft": "other",
+          "proxy_type": "socks5",
+          "proxy_host": "1.2.3.4",
+          "proxy_port": "1080",
+          "proxy_user": "proxyuser",
+          "proxy_password": "proxypass"
+        },
+        "fingerprint_config": {
+          "automatic_timezone": "0",
+          "timezone": "America/New_York",
+          "webrtc": "disabled",
+          "language_switch": "0",
+          "language": ["en-US", "en"],
+          "page_language": "en-US",
+          "ua": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+          "screen_resolution": "1920_1080",
+          "hardware_concurrency": "8",
+          "device_memory": "8",
+          "canvas": "1",
+          "webgl_image": "1",
+          "webgl": "3",
+          "webgl_config": {
+            "unmasked_vendor": "Google Inc. (Intel)",
+            "unmasked_renderer": "ANGLE (Intel, Intel(R) HD Graphics 620 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+            "webgpu": { "webgpu_switch": "1" }
+          }
+        }
+      }
+    ],
+    "page": 1,
+    "page_size": 50
+  },
+  "msg": "Success"
+}

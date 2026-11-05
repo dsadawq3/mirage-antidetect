@@ -1,0 +1,182 @@
+# =============================================================================
+# Mirage native patch 0003 — automation flags hardening
+# Target tag: 131.0.6778.85 (verify every anchor against this checkout)
+# =============================================================================
+#
+# WHAT
+#   Remove automation traces deeper than command-line flags. The launcher
+#   already passes --disable-blink-features=AutomationControlled (CONTRACT.md,
+#   "Аргументы Chromium") and inject/navigator.js overrides navigator.webdriver
+#   on Navigator.prototype. This patch adds the native backstops so that
+#   automation indicators cannot light up while a Mirage profile is active,
+#   no matter who re-enables them afterwards (embedder preferences, a test
+#   harness, an external tool attaching to the debug port and passing the
+#   switch):
+#
+#     A. Navigator::webdriver() returns native false whenever
+#        MIRAGE_FP_CONFIG is present (blink frame layer).
+#     B. The AutomationControlled Blink runtime feature is forced off while
+#        a Mirage profile is active, regardless of switches/preferences.
+#     C. The content-level --enable-automation switch constant is renamed, so
+#        any external tool passing --enable-automation hits an unknown
+#        switch and the automation state can never be activated.
+#
+# WHERE / SEARCH SIGNALS
+#   - Navigator::webdriver — third_party/blink/renderer/core/frame/navigator.cc
+#       grep -n "webdriver" third_party/blink/renderer/core/frame/navigator.cc
+#     NOTE: navigator_id.cc (NavigatorID partial interface: platform, product,
+#     userAgent, ...) is NOT expected to carry webdriver in this tag — the
+#     getter lives on Navigator itself. Verify once:
+#       grep -n "webdriver" third_party/blink/renderer/core/frame/navigator_id.cc
+#     (expected: no hits; if the getter moved there instead, apply the block 2
+#     pattern to that file).
+#   - AutomationControlled runtime feature:
+#       grep -n "AutomationControlled" third_party/blink/renderer/platform/runtime_enabled_features.json5
+#       grep -rn "AutomationControlled" third_party/blink/public/common/runtime_enabled_features/
+#     The feature is a Blink *runtime feature* (runtime_enabled_features.json5
+#     with generated WebRuntimeFeatures accessors), toggled from
+#     content/child/runtime_features.cc: SetRuntimeFeaturesDefaultsAndUpdateFromArgs
+#     — that function is what processes --enable-blink-features /
+#     --disable-blink-features and where block 4 hard-disables the feature.
+#   - enable-automation switch constant:
+#       grep -rn "kEnableAutomation" content/ third_party/blink/
+#       grep -n "enable-automation" content/public/common/content_switches.cc
+
+MIRAGE-PATCH: 0003
+MIRAGE-TITLE: Automation flags hardening — native backstops for webdriver and AutomationControlled
+MIRAGE-TARGET: 156.0.8078.80
+MIRAGE-DESCRIPTION: anchors drafted against the 131 source layout — expect signature refusals on the 156 line, realign from the printed context dumps
+MIRAGE-DESCRIPTION: Native false for navigator.webdriver, hard-off AutomationControlled runtime feature, neutralized --enable-automation switch — all gated on MIRAGE_FP_CONFIG presence.
+MIRAGE-DESCRIPTION: Blocks 1-2: navigator.cc. Blocks 3-4: content/child/runtime_features.cc. Block 5: content/public/common/content_switches.cc.
+
+# --- Block 1: includes in navigator.cc ---------------------------------------
+
+MIRAGE-BLOCK
+MIRAGE-FILE: third_party/blink/renderer/core/frame/navigator.cc
+MIRAGE-SIGNATURE: #include "third_party/blink/renderer/core/frame/navigator\.h"
+MIRAGE-VERIFY: Confirm the own-header include style in this tag; adjust FROM to the file's first #include if it differs.
+MIRAGE-REPLACE-FROM:
+#include "third_party/blink/renderer/core/frame/navigator.h"
+MIRAGE-REPLACE-TO:
+#include "third_party/blink/renderer/core/frame/navigator.h"
+// <<<MIRAGE(automation-hardening)
+#include <cstdlib>
+// >>>MIRAGE(automation-hardening)
+MIRAGE-ENDBLOCK
+
+# --- Block 2: native false for Navigator::webdriver ---------------------------
+# FROM is the getter head as authored against the 131 line. If the tag
+# differs (brace placement, constness), fix FROM to the real head:
+#   grep -n -A4 "Navigator::webdriver" third_party/blink/renderer/core/frame/navigator.cc
+# The gate must be the first statement of the body, before the stock value
+# is read, so no automation state can leak through the native getter.
+
+MIRAGE-BLOCK
+MIRAGE-FILE: third_party/blink/renderer/core/frame/navigator.cc
+MIRAGE-SIGNATURE: ^bool Navigator::webdriver\(
+MIRAGE-VERIFY: Confirm the exact webdriver getter head in this tag and fix FROM if needed.
+MIRAGE-VERIFY: Confirm webdriver is not implemented in navigator_id.cc in this tag (grep above); if it moved there, apply this pattern to navigator_id.cc instead.
+MIRAGE-REPLACE-FROM:
+bool Navigator::webdriver() const {
+MIRAGE-REPLACE-TO:
+bool Navigator::webdriver() const {
+  // <<<MIRAGE(automation-hardening)
+  // Native "false" whenever a Mirage profile is active — independent of the
+  // AutomationControlled runtime feature, command-line switches and
+  // preferences. inject/navigator.js overrides the prototype getter too;
+  // this is the native backstop for paths the JS layer cannot reach
+  // (e.g. a getter invoked before the inject script ran in that realm).
+  static const bool mirage_active = [] {
+    const char* config_path = std::getenv("MIRAGE_FP_CONFIG");
+    return config_path != nullptr && *config_path != '\0';
+  }();
+  if (mirage_active) {
+    return false;
+  }
+  // >>>MIRAGE(automation-hardening)
+MIRAGE-ENDBLOCK
+
+# --- Block 3: includes in content/child/runtime_features.cc ------------------
+
+MIRAGE-BLOCK
+MIRAGE-FILE: content/child/runtime_features.cc
+MIRAGE-SIGNATURE: #include "content/child/runtime_features\.h"
+MIRAGE-VERIFY: Confirm the own-header include style in this tag; adjust FROM to the file's first #include if it differs.
+MIRAGE-REPLACE-FROM:
+#include "content/child/runtime_features.h"
+MIRAGE-REPLACE-TO:
+#include "content/child/runtime_features.h"
+// <<<MIRAGE(automation-hardening)
+#include <cstdlib>
+// >>>MIRAGE(automation-hardening)
+MIRAGE-ENDBLOCK
+
+# --- Block 4: hard-off AutomationControlled runtime feature -------------------
+# SetRuntimeFeaturesDefaultsAndUpdateFromArgs is the function that processes
+# --enable-blink-features / --disable-blink-features (this is exactly what
+# --disable-blink-features=AutomationControlled feeds into). The Mirage gate
+# runs first, so nothing parsed afterwards — and nothing a harness injects
+# through switches or preferences — can turn the feature back on while a
+# profile is active.
+#
+# FROM is the function head as authored against the 131 line. If the tag
+# differs, fix FROM to the real head:
+#   grep -n -A3 "SetRuntimeFeaturesDefaultsAndUpdateFromArgs" content/child/runtime_features.cc
+# MIRAGE-VERIFY the generated accessor name for the feature before applying:
+#   grep -rn "AutomationControlled" third_party/blink/public/common/runtime_enabled_features/web_runtime_features.h
+# Expected: WebRuntimeFeatures::EnableAutomationControlled(bool). If the
+# generated shape differs in this tag, adjust the call inside the markers.
+
+MIRAGE-BLOCK
+MIRAGE-FILE: content/child/runtime_features.cc
+MIRAGE-SIGNATURE: ^void SetRuntimeFeaturesDefaultsAndUpdateFromArgs\(
+MIRAGE-VERIFY: Confirm the exact function head in this tag and fix FROM if needed.
+MIRAGE-VERIFY: Confirm the generated WebRuntimeFeatures accessor for AutomationControlled (grep above) and adjust the call if the name differs.
+MIRAGE-REPLACE-FROM:
+void SetRuntimeFeaturesDefaultsAndUpdateFromArgs(
+    const base::CommandLine& command_line) {
+MIRAGE-REPLACE-TO:
+void SetRuntimeFeaturesDefaultsAndUpdateFromArgs(
+    const base::CommandLine& command_line) {
+  // <<<MIRAGE(automation-hardening)
+  // The Blink runtime feature AutomationControlled is the native source
+  // behind navigator.webdriver and related automation signals. Inside a
+  // Mirage session it must stay off no matter which switches or
+  // preferences a harness injects. Running first in this function means
+  // the default-off wins even if --enable-blink-features lists it.
+  static const bool mirage_active = [] {
+    const char* config_path = std::getenv("MIRAGE_FP_CONFIG");
+    return config_path != nullptr && *config_path != '\0';
+  }();
+  if (mirage_active) {
+    WebRuntimeFeatures::EnableAutomationControlled(false);
+  }
+  // >>>MIRAGE(automation-hardening)
+MIRAGE-ENDBLOCK
+
+# --- Block 5: neutralize the --enable-automation switch -----------------------
+# The launcher never passes --enable-automation (CONTRACT.md forbids it), but
+# external tooling (Selenium-style harnesses, some RPA) appends it when it
+# sees a debug port. Renaming the content-level constant makes the switch
+# unrecognized: HasSwitch(kEnableAutomation) checks the new name, which
+# nothing ever passes, so the automation indicator state can never activate
+# in a Mirage-launched process. All in-tree consumers reference the constant,
+# so they stay consistent.
+#
+# FROM is the constant definition as authored against the 131 line:
+#   grep -n "kEnableAutomation" content/public/common/content_switches.cc
+
+MIRAGE-BLOCK
+MIRAGE-FILE: content/public/common/content_switches.cc
+MIRAGE-SIGNATURE: const char kEnableAutomation\[\] = "enable-automation";
+MIRAGE-VERIFY: Confirm the exact constant definition line in this tag and fix FROM if needed (spacing, exact string).
+MIRAGE-REPLACE-FROM:
+const char kEnableAutomation[] = "enable-automation";
+MIRAGE-REPLACE-TO:
+// <<<MIRAGE(automation-hardening)
+// Renamed: an external tool passing --enable-automation now hits an unknown
+// switch, and no in-tree consumer can observe the automation state. CDP
+// automation (what mirage-launcher uses) does not require this switch.
+const char kEnableAutomation[] = "mirage-automation-disabled";
+// >>>MIRAGE(automation-hardening)
+MIRAGE-ENDBLOCK

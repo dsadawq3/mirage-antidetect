@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mirage E2E fingerprint checker</title>
+</head>
+<body>
+<h1>Mirage E2E fingerprint checker</h1>
+<p id="mirage-status">running&hellip;</p>
+<script>
+/*
+ * Mirage E2E fingerprint checker (self-contained, zero external requests).
+ *
+ * The page is injected with the profile legend by the launcher as
+ * `window.__MIRAGE_FP__` (a JSON Fingerprint, CONTRACT.md). This script probes
+ * the *live* document and writes a single JSON string to
+ * `window.__MIRAGE_CHECK__`:
+ *
+ *   { fields: { ...raw observations... },
+ *     verdict: { checks: [ { name, pass, detail } ] } }
+ *
+ * `fields` is diagnostic raw data and the report-only probes (font
+ * enumeration, media device list, audio hash, WebGL limits); `verdict.checks`
+ * is the pass/fail gate. Nothing here may hang the page or throw: every probe
+ * runs in its own try/catch and every async wait has a bounded timeout.
+ */
+(function () {
+    'use strict';
+
+    var checks = [];
+    var fields = {};
+
+    // Legend injected before any page script. Guard because a hand-opened file
+    // (file://) gets no legend; comparisons then fail loudly with `want: null`.
+    var fp = (typeof window.__MIRAGE_FP__ === 'object' && window.__MIRAGE_FP__ !== null)
+        ? window.__MIRAGE_FP__
+        : null;
+
+    function add(name, pass, detail) {
+        checks.push({ name: name, pass: !!pass, detail: (detail === undefined ? null : detail) });
+    }
+
+    // Structural equality for plain JSON values (numbers, strings, booleans,
+    // arrays, objects). `NaN` never appears in the compared legends.
+    function eq(a, b) {
+        return JSON.stringify(a) === JSON.stringify(b);
+    }
+
+    function toArray(listLike) {
+        try { return Array.prototype.slice.call(listLike); } catch (e) { return []; }
+    }
+
+    function finish() {
+        var failed = 0;
+        for (var i = 0; i < checks.length; i++) { if (!checks[i].pass) { failed++; } }
+        var banner = document.getElementById('mirage-status');
+        if (banner) { banner.textContent = checks.length + ' checks, ' + failed + ' failed'; }
+        // The harness polls for exactly this property.
+        window.__MIRAGE_CHECK__ = JSON.stringify({ fields: fields, verdict: { checks: checks } });
+    }
+
+    // ------------------------------------------------------------------
+    // Values: compare the live document against the injected legend.
+    // ------------------------------------------------------------------
+    function probeValues() {
+        fields.ua = navigator.userAgent;
+        add('navigator.userAgent', !!fp && fields.ua === fp.ua, { got: fields.ua, want: fp && fp.ua });
+
+        fields.platform = navigator.platform;
+        add('navigator.platform', !!fp && fields.platform === fp.platform, { got: fields.platform, want: fp && fp.platform });
+
+        fields.languages = toArray(navigator.languages);
+        add('navigator.languages', !!fp && eq(fields.languages, fp.languages), { got: fields.languages, want: fp && fp.languages });
+
+        fields.hardwareConcurrency = navigator.hardwareConcurrency;
+        add('navigator.hardwareConcurrency', !!fp && fields.hardwareConcurrency === fp.hardwareConcurrency,
+            { got: fields.hardwareConcurrency, want: fp && fp.hardwareConcurrency });
+
+        fields.deviceMemory = navigator.deviceMemory;
+        add('navigator.deviceMemory', !!fp && fields.deviceMemory === fp.deviceMemory,
+            { got: fields.deviceMemory, want: fp && fp.deviceMemory });
+
+        fields.webdriver = navigator.webdriver;
+        add('navigator.webdriver', navigator.webdriver === false, { got: fields.webdriver });
+
+        fields.screen = {
+            width: screen.width,
+            height: screen.height,
+            availWidth: screen.availWidth,
+            availHeight: screen.availHeight,
+            colorDepth: screen.colorDepth
+        };
+        add('screen.size', !!fp && screen.width === fp.screen.width && screen.height === fp.screen.height,
+            { got: [screen.width, screen.height], want: fp && [fp.screen.width, fp.screen.height] });
+        add('screen.avail', !!fp && screen.availWidth === fp.screen.availWidth && screen.availHeight === fp.screen.availHeight,
+            { got: [screen.availWidth, screen.availHeight], want: fp && [fp.screen.availWidth, fp.screen.availHeight] });
+        add('screen.colorDepth', !!fp && screen.colorDepth === fp.screen.colorDepth,
+            { got: screen.colorDepth, want: fp && fp.screen.colorDepth });
+
+        fields.devicePixelRatio = window.devicePixelRatio;
+        add('screen.devicePixelRatio', !!fp && Math.abs(fields.devicePixelRatio - fp.screen.dpr) < 1e-9,
+            { got: fields.devicePixelRatio, want: fp && fp.screen.dpr });
+
+        // Timezone name and a non-circular offset cross-check: derive the UTC
+        // offset the IANA zone implies at `now` through Intl and compare it to
+        // the native Date offset. If only one of the two was spoofed, the two
+        // disagree.
+        fields.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        add('timezone.name', !!fp && fields.timezone === fp.timezone, { got: fields.timezone, want: fp && fp.timezone });
+
+        fields.tzOffset = new Date().getTimezoneOffset();
+        var expectedOffset = (fp && zoneOffsetMinutes(fp.timezone, Date.now()) !== null)
+            ? -zoneOffsetMinutes(fp.timezone, Date.now())
+            : null;
+        add('timezone.offset', expectedOffset !== null && fields.tzOffset === expectedOffset,
+            { got: fields.tzOffset, want: expectedOffset, zone: fields.timezone });
+
+        // WebGL renderer identity through the debug extension.
+        fields.webgl = (function () {
+            try {
+                var c = document.createElement('canvas');
+                var g = c.getContext('webgl') || c.getContext('experimental-webgl');
+                if (!g) { return { err: 'no WebGL context' }; }
+                var d = g.getExtension('WEBGL_debug_renderer_info');
+                var out = { hasDebugExt: !!d };
+                if (d) {
+                    out.vendor = g.getParameter(d.UNMASKED_VENDOR_WEBGL);
+                    out.renderer = g.getParameter(d.UNMASKED_RENDERER_WEBGL);
+                }
+                // Report-only GPU limits (not part of the verdict).
+                out.maxTextureSize = g.getParameter(g.MAX_TEXTURE_SIZE);
+                out.viewportDims = toArray(g.getParameter(g.MAX_VIEWPORT_DIMS));
+                return out;
+            } catch (e) { return { err: String(e && e.message) }; }
+        })();
+        add('webgl.vendor', !!fp && fields.webgl.vendor === fp.webgl.vendor,
+            { got: fields.webgl.vendor, want: fp && fp.webgl.vendor });
+        add('webgl.renderer', !!fp && fields.webgl.renderer === fp.webgl.renderer,
+            { got: fields.webgl.renderer, want: fp && fp.webgl.renderer });
+        // Report-only, per task scope.
+        fields.webglLimits = { maxTextureSize: fields.webgl.maxTextureSize, maxViewportDims: fields.webgl.viewportDims };
+
+        // User-Agent Client Hints. `userAgentData` carries [SecureContext], so
+        // it only exists on a secure origin (127.0.0.1 qualifies) — on an
+        // insecure origin the probes are skipped, not failed.
+        var uad = ('userAgentData' in navigator) ? navigator.userAgentData : null;
+        fields.isSecureContext = window.isSecureContext;
+        fields.userAgentDataPresent = !!uad;
+        if (window.isSecureContext) {
+            add('userAgentData.present', !!uad, { present: !!uad });
+            if (uad) {
+                fields.uad = { brands: uad.brands, mobile: uad.mobile, platform: uad.platform };
+                fields.uadOwnProps = Object.getOwnPropertyNames(uad);
+                add('userAgentData.brands', !!fp && eq(uad.brands, fp.clientHints.brands),
+                    { got: uad.brands, want: fp && fp.clientHints.brands });
+                add('userAgentData.mobile', !!fp && uad.mobile === fp.clientHints.mobile,
+                    { got: uad.mobile, want: fp && fp.clientHints.mobile });
+                add('userAgentData.platform', !!fp && uad.platform === fp.clientHints.platform,
+                    { got: uad.platform, want: fp && fp.clientHints.platform });
+            }
+        } else {
+            add('userAgentData.present', true, 'skipped: not a secure context');
+        }
+
+        // Plugin / mime enumeration plus own-property hygiene. The inject layer
+        // exposes a plausible 5-entry PDF-family set (CONTRACT.md plugins.js):
+        // 5 plugins, each with 2 mime types, 2 mime types total, and no
+        // enumerable instance methods (`item`/`namedItem`/`refresh`).
+        fields.pluginsLength = navigator.plugins.length;
+        fields.pluginMimeCounts = toArray(navigator.plugins).map(function (p) { return p.length; });
+        fields.mimeTypesLength = navigator.mimeTypes.length;
+        fields.pluginsOwnProps = Object.getOwnPropertyNames(navigator.plugins);
+        add('plugins.length', fields.pluginsLength === 5, { got: fields.pluginsLength, want: 5 });
+        add('plugins.mimeCounts',
+            fields.pluginMimeCounts.length > 0 && fields.pluginMimeCounts.every(function (n) { return n === 2; }),
+            { got: fields.pluginMimeCounts, want: 'all 2' });
+        add('mimeTypes.length', fields.mimeTypesLength === 2, { got: fields.mimeTypesLength, want: 2 });
+        add('plugins.ownProps',
+            !fields.pluginsOwnProps.some(function (n) { return n === 'item' || n === 'namedItem' || n === 'refresh'; }),
+            { got: fields.pluginsOwnProps });
+
+        fields.oscpuIn = ('oscpu' in navigator);
+        add('navigator.oscpuAbsent', fields.oscpuIn === false, { got: fields.oscpuIn });
+    }
+
+    // UTC offset (minutes) the IANA `zone` implies at time `t`, or null.
+    function zoneOffsetMinutes(zone, t) {
+        try {
+            var dtf = new Intl.DateTimeFormat('en-US', {
+                timeZone: zone, hour12: false,
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+            var parts = dtf.formatToParts(new Date(t));
+            var m = {};
+            for (var i = 0; i < parts.length; i++) { m[parts[i].type] = parts[i].value; }
+            var asUTC = Date.UTC(+m.year, +m.month - 1, +m.day, (+m.hour) % 24, +m.minute, +m.second);
+            return Math.round((asUTC - t) / 60000);
+        } catch (e) { return null; }
+    }
+
+    // ------------------------------------------------------------------
+    // Adversarial invariants: things a detector would check beyond raw
+    // legend values.
+    // ------------------------------------------------------------------
+    function probeAdversarial() {
+        // 1. Spoofed accessors must look native and must not leak internals.
+        var targets = [
+            [Navigator.prototype, 'platform'],
+            [Navigator.prototype, 'userAgent'],
+            [Navigator.prototype, 'hardwareConcurrency'],
+            [Screen.prototype, 'width']
+        ];
+        var getterReports = targets.map(function (pair) {
+            try {
+                var d = Object.getOwnPropertyDescriptor(pair[0], pair[1]);
+                if (!d || !d.get) { return { prop: pair[1], present: false }; }
+                var s = Function.prototype.toString.call(d.get);
+                return {
+                    prop: pair[1],
+                    present: true,
+                    native: s.indexOf('[native code]') !== -1,
+                    leak: s.indexOf('__MIRAGE') !== -1 || s.indexOf('fp.') !== -1,
+                    source: s.slice(0, 120)
+                };
+            } catch (e) { return { prop: pair[1], err: String(e && e.message) }; }
+        });
+        fields.getters = getterReports;
+        add('toString.gettersNative',
+            getterReports.every(function (r) { return r.present && r.native === true; }),
+            getterReports);
+        add('toString.noLeak',
+            getterReports.every(function (r) { return r.leak !== true; }),
+            getterReports);
+
+        // 2. A never-drawn canvas must read back all zeros (no unconditional
+        //    noise on blank surfaces).
+        fields.blankCanvas = (function () {
+            try {
+                var c = document.createElement('canvas'); c.width = 64; c.height = 64;
+                var g = c.getContext('2d');
+                var d = g.getImageData(0, 0, 64, 64).data;
+                var nz = 0;
+                for (var i = 0; i < d.length; i++) { if (d[i] !== 0) { nz++; } }
+                return { nonZero: nz };
+            } catch (e) { return { err: String(e && e.message) }; }
+        })();
+        add('canvas.blankIsZero', fields.blankCanvas.nonZero === 0, fields.blankCanvas);
+
+        // 3. Noise applied to a drawn surface must be stable between reads
+        //    (deterministic per profile, not re-randomized every read).
+        fields.canvasStable = (function () {
+            try {
+                var c = document.createElement('canvas'); c.width = 32; c.height = 32;
+                var g = c.getContext('2d');
+                g.fillStyle = '#c0ffee'; g.fillRect(0, 0, 32, 32);
+                g.fillStyle = '#123456'; g.font = '16px Arial'; g.fillText('mirage', 2, 20);
+                var a = Array.from(g.getImageData(0, 0, 32, 32).data);
+                var b = Array.from(g.getImageData(0, 0, 32, 32).data);
+                return { equal: a.length === b.length && a.every(function (v, i) { return v === b[i]; }) };
+            } catch (e) { return { err: String(e && e.message) }; }
+        })();
+        add('canvas.stableAcrossReads', fields.canvasStable.equal === true, fields.canvasStable);
+
+        // 4. CSS media queries cannot be patched from JS, so the launcher must
+        //    have aligned them with the JS devicePixelRatio getter natively.
+        var dpr = window.devicePixelRatio;
+        var mq = function (v) {
+            try { return window.matchMedia('(min-resolution: ' + v + 'dppx)').matches; }
+            catch (e) { return null; }
+        };
+        var mqSelf = mq(dpr);
+        var mqAbove = mq(dpr + 0.25);
+        fields.matchMedia = { dpr: dpr, self: mqSelf, above: mqAbove };
+        add('matchMedia.agreesWithDpr', mqSelf === true && mqAbove === false, fields.matchMedia);
+
+        // 5. Maximized window geometry must match the legend's available area.
+        fields.outer = { width: window.outerWidth, height: window.outerHeight };
+        add('geometry.outerMatchesAvail',
+            !!fp && window.outerWidth === fp.screen.availWidth && window.outerHeight === fp.screen.availHeight,
+            { got: [window.outerWidth, window.outerHeight], want: fp && [fp.screen.availWidth, fp.screen.availHeight] });
+    }
+
+    // Worker scope reads (hardwareConcurrency / deviceMemory). Resolves within
+    // 3 s whatever happens so the page can never hang on it.
+    function probeWorker() {
+        return new Promise(function (resolve) {
+            try {
+                var src = 'onmessage=function(){postMessage([navigator.hardwareConcurrency,navigator.deviceMemory]);};';
+                var blob = new Blob([src], { type: 'application/javascript' });
+                var url = URL.createObjectURL(blob);
+                var w = new Worker(url);
+                var done = false;
+                var timer = setTimeout(function () {
+                    if (done) { return; }
+                    done = true;
+                    try { w.terminate(); } catch (e) {}
+                    resolve({ timeout: true });
+                }, 3000);
+                w.onmessage = function (e) {
+                    if (done) { return; }
+                    done = true;
+                    clearTimeout(timer);
+                    try { w.terminate(); } catch (err) {}
+                    resolve({ hw: e.data[0], mem: e.data[1] });
+                };
+                w.onerror = function (e) {
+                    if (done) { return; }
+                    done = true;
+                    clearTimeout(timer);
+                    try { w.terminate(); } catch (err) {}
+                    resolve({ err: String(e && (e.message || e)) });
+                };
+                w.postMessage(1);
+            } catch (e) { resolve({ thrown: String(e && e.message) }); }
+        });
+    }
+
+    // ------------------------------------------------------------------
+    // Report-only probes: recorded in `fields`, never in the verdict.
+    // ------------------------------------------------------------------
+
+    // Font presence by canvas measurement against the three generic families.
+    function probeFonts() {
+        try {
+            var names = [
+                'Arial', 'Arial Black', 'Arial Narrow', 'Calibri', 'Cambria', 'Candara',
+                'Comic Sans MS', 'Consolas', 'Courier New', 'Segoe UI', 'Tahoma',
+                'Times New Roman', 'Trebuchet MS', 'Verdana', 'Georgia', 'Impact',
+                'Lucida Console', 'MS Gothic', 'MS PGothic', 'Meiryo', 'Palatino Linotype',
+                'Book Antiqua', 'Garamond', 'Franklin Gothic Medium', 'Century Gothic',
+                'Helvetica', 'Helvetica Neue', 'DejaVu Sans', 'Liberation Sans',
+                'Roboto', 'Ubuntu', 'Menlo', 'Monaco'
+            ];
+            var c = document.createElement('canvas');
+            var g = c.getContext('2d');
+            var text = 'mmmmmmmmmmlli';
+            var width = function (font) { g.font = font; return g.measureText(text).width; };
+            var refs = ['monospace', 'sans-serif', 'serif'].map(function (fam) {
+                return { fam: fam, w: width('72px ' + fam) };
+            });
+            var found = [];
+            for (var i = 0; i < names.length; i++) {
+                var name = names[i];
+                var differs = refs.some(function (r) {
+                    return Math.abs(width('72px "' + name + '", ' + r.fam) - r.w) > 0.01;
+                });
+                if (differs) { found.push(name); }
+            }
+            return { detected: found, probed: names.length };
+        } catch (e) { return { err: String(e && e.message) }; }
+    }
+
+    // Enumerated media devices (labels are masked without permission).
+    function probeMediaDevices() {
+        return new Promise(function (resolve) {
+            var settled = false;
+            var done = function (v) { if (!settled) { settled = true; resolve(v); } };
+            try {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+                    done({ unsupported: true });
+                    return;
+                }
+                navigator.mediaDevices.enumerateDevices().then(function (list) {
+                    done(toArray(list).map(function (d) {
+                        return { kind: d.kind, label: d.label, hasDeviceId: !!d.deviceId };
+                    }));
+                }, function (err) {
+                    done({ err: String(err && err.message) });
+                });
+                setTimeout(function () { done({ timeout: true }); }, 3000);
+            } catch (e) { done({ thrown: String(e && e.message) }); }
+        });
+    }
+
+    // Audio fingerprint through an OfflineAudioContext + DynamicsCompressor.
+    // Two runs; `stable` compares them (report-only).
+    function audioRun() {
+        return new Promise(function (resolve) {
+            var settled = false;
+            var done = function (v) { if (!settled) { settled = true; resolve(v); } };
+            try {
+                var OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+                if (!OAC) { done(null); return; }
+                var ctx = new OAC(1, 44100, 44100);
+                var osc = ctx.createOscillator();
+                osc.type = 'triangle';
+                osc.frequency.value = 10000;
+                var comp = ctx.createDynamicsCompressor();
+                comp.threshold.value = -50;
+                comp.knee.value = 40;
+                comp.ratio.value = 12;
+                comp.attack.value = 0;
+                comp.release.value = 0.25;
+                osc.connect(comp);
+                comp.connect(ctx.destination);
+                osc.start(0);
+                ctx.startRendering().then(function (buffer) {
+                    var d = buffer.getChannelData(0);
+                    var acc = 0;
+                    for (var i = 0; i < d.length; i++) { acc += Math.abs(d[i]); }
+                    done(acc);
+                }, function (err) { done('ERR:' + (err && err.message)); });
+                setTimeout(function () { done(null); }, 3000);
+            } catch (e) { done('THROW:' + String(e && e.message)); }
+        });
+    }
+
+    // ------------------------------------------------------------------
+    // Driver.
+    // ------------------------------------------------------------------
+    (async function main() {
+        try {
+            probeValues();
+            probeAdversarial();
+
+            var workerInfo = await probeWorker();
+            fields.worker = workerInfo;
+            add('worker.hardwareConcurrency', !!fp && workerInfo.hw === fp.hardwareConcurrency, workerInfo);
+            add('worker.deviceMemory', !!fp && workerInfo.mem === fp.deviceMemory, workerInfo);
+
+            // userAgentData JSON + high-entropy refinements.
+            var uad = window.isSecureContext ? ('userAgentData' in navigator ? navigator.userAgentData : null) : null;
+            if (uad) {
+                var stringifyBrands = null;
+                var stringifyOk = false;
+                try {
+                    var parsed = JSON.parse(JSON.stringify(uad));
+                    stringifyOk = !!parsed;
+                    stringifyBrands = parsed && parsed.brands;
+                } catch (e) {}
+                fields.uadStringify = { ok: stringifyOk, brands: stringifyBrands };
+                add('userAgentData.stringify',
+                    stringifyOk && !!fp && eq(stringifyBrands, fp.clientHints.brands),
+                    fields.uadStringify);
+
+                var hev = null;
+                try { hev = await uad.getHighEntropyValues(['architecture']); } catch (e) {}
+                fields.uadHighEntropy = hev;
+                var hevKeys = hev ? Object.keys(hev) : [];
+                add('userAgentData.highEntropyBaseFields',
+                    ['architecture', 'brands', 'mobile', 'platform'].every(function (k) { return hevKeys.indexOf(k) !== -1; }),
+                    { keys: hevKeys });
+            } else {
+                add('userAgentData.stringify', true, 'skipped: no userAgentData');
+                add('userAgentData.highEntropyBaseFields', true, 'skipped: no userAgentData');
+            }
+
+            // Inject-layer self-report: the ten modules set their marker.
+            var done = (window.__MIRAGE_DONE__ && typeof window.__MIRAGE_DONE__ === 'object')
+                ? Object.keys(window.__MIRAGE_DONE__) : [];
+            fields.injectModules = done;
+            add('inject.modulesLoaded', done.length === 10, { count: done.length, names: done });
+
+            // Report-only probes.
+            fields.fonts = probeFonts();
+            fields.mediaDevices = await probeMediaDevices();
+            var a1 = await audioRun();
+            var a2 = await audioRun();
+            fields.audio = { h1: a1, h2: a2, stable: (a1 !== null && a1 === a2) };
+        } catch (e) {
+            add('checker.exception', false, String((e && e.stack) || e));
+        } finally {
+            finish();
+        }
+    })();
+})();
+</script>
+</body>
+</html>

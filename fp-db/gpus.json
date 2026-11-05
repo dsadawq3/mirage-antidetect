@@ -1,0 +1,298 @@
+[
+  {
+    "os": "windows",
+    "vendor": "Google Inc. (NVIDIA)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 1050 (0x00001C81) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [32767, 32767],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "windows",
+    "vendor": "Google Inc. (NVIDIA)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 1050 Ti (0x00001C82) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [32767, 32767],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "windows",
+    "vendor": "Google Inc. (NVIDIA)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 1060 6GB (0x00001C03) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [32767, 32767],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "windows",
+    "vendor": "Google Inc. (NVIDIA)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 1650 (0x00001F82) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [32767, 32767],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "windows",
+    "vendor": "Google Inc. (NVIDIA)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 1660 (0x00002184) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [32767, 32767],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "windows",
+    "vendor": "Google Inc. (NVIDIA)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 1660 SUPER (0x000021C4) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [32767, 32767],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "windows",
+    "vendor": "Google Inc. (NVIDIA)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 2060 (0x00001F08) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [32767, 32767],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "windows",
+    "vendor": "Google Inc. (NVIDIA)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002504) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [32767, 32767],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "windows",
+    "vendor": "Google Inc. (NVIDIA)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Ti (0x00002489) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [32767, 32767],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "windows",
+    "vendor": "Google Inc. (NVIDIA)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3070 (0x00002484) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [32767, 32767],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "windows",
+    "vendor": "Google Inc. (NVIDIA)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4060 Ti (0x00002803) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [32767, 32767],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "windows",
+    "vendor": "Google Inc. (NVIDIA)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 4060 Laptop GPU (0x000028E0) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [32767, 32767],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "windows",
+    "vendor": "Google Inc. (AMD)",
+    "renderer": "ANGLE (AMD, Radeon RX 580 Series (0x000067DF) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [32767, 32767],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "windows",
+    "vendor": "Google Inc. (AMD)",
+    "renderer": "ANGLE (AMD, Radeon RX 580 2048SP (0x00006FDF) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [32767, 32767],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "windows",
+    "vendor": "Google Inc. (AMD)",
+    "renderer": "ANGLE (AMD, AMD Radeon RX 6600 (0x000073FF) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [32767, 32767],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "windows",
+    "vendor": "Google Inc. (Intel)",
+    "renderer": "ANGLE (Intel, Intel(R) HD Graphics 620 (0x00005916) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [32767, 32767],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "windows",
+    "vendor": "Google Inc. (Intel)",
+    "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 620 (0x00003EA0) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [32767, 32767],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "windows",
+    "vendor": "Google Inc. (Intel)",
+    "renderer": "ANGLE (Intel, Intel(R) UHD Graphics 630 (0x00003E9B) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [32767, 32767],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "windows",
+    "vendor": "Google Inc. (Intel)",
+    "renderer": "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics (0x00009A49) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [32767, 32767],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "windows",
+    "vendor": "Google Inc. (Intel)",
+    "renderer": "ANGLE (Intel, Intel(R) Iris(R) Xe Graphics (0x000046A6) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [32767, 32767],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "windows",
+    "vendor": "Google Inc. (Intel)",
+    "renderer": "ANGLE (Intel, Intel(R) UHD Graphics (0x0000A7A8) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [32767, 32767],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "macos",
+    "vendor": "Google Inc. (Apple)",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1, Unspecified Version)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [16384, 16384],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "macos",
+    "vendor": "Google Inc. (Apple)",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [16384, 16384],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "macos",
+    "vendor": "Google Inc. (Apple)",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2, Unspecified Version)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [16384, 16384],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "macos",
+    "vendor": "Google Inc. (Apple)",
+    "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Max, Unspecified Version)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [16384, 16384],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "macos",
+    "vendor": "Google Inc. (AMD)",
+    "renderer": "ANGLE (AMD, ANGLE Metal Renderer: AMD Radeon Pro 5300M, Unspecified Version)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [16384, 16384],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "macos",
+    "vendor": "Google Inc. (AMD)",
+    "renderer": "ANGLE (AMD, ANGLE Metal Renderer: AMD Radeon Pro 5500M, Unspecified Version)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [16384, 16384],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "macos",
+    "vendor": "Google Inc. (Intel)",
+    "renderer": "ANGLE (Intel, ANGLE Metal Renderer: Intel(R) Iris(TM) Plus Graphics 645, Unspecified Version)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [16384, 16384],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "linux",
+    "vendor": "Google Inc. (NVIDIA)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 (0x00002503) OpenGL ES 3.2 NVIDIA 550.107.02)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [16384, 16384],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "linux",
+    "vendor": "Google Inc. (NVIDIA)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce RTX 3070 (0x00002484) OpenGL ES 3.2 NVIDIA 550.107.02)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [16384, 16384],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "linux",
+    "vendor": "Google Inc. (NVIDIA)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 1660 SUPER (0x000021C4) OpenGL ES 3.2 NVIDIA 535.216.01)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [16384, 16384],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "linux",
+    "vendor": "Google Inc. (NVIDIA)",
+    "renderer": "ANGLE (NVIDIA, NVIDIA GeForce GTX 1060 6GB (0x00001C03) OpenGL ES 3.2 NVIDIA 535.183.01)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [16384, 16384],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "linux",
+    "vendor": "Google Inc. (Intel)",
+    "renderer": "ANGLE (Intel, Mesa Intel(R) UHD Graphics 620 (Kaby Lake GT2) (0x00005917) OpenGL ES 3.2 Mesa 23.2.1)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [16384, 16384],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "linux",
+    "vendor": "Google Inc. (Intel)",
+    "renderer": "ANGLE (Intel, Mesa Intel(R) Iris(R) Xe Graphics (TGL GT2) (0x00009A49) OpenGL ES 3.2 Mesa 24.0.9)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [16384, 16384],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "linux",
+    "vendor": "Google Inc. (AMD)",
+    "renderer": "ANGLE (AMD, AMD Radeon RX 6600 (radeonsi navi23 LLVM 15.0.7) (0x000073FF) OpenGL ES 3.2 Mesa 23.2.1)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [16384, 16384],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "linux",
+    "vendor": "Google Inc. (AMD)",
+    "renderer": "ANGLE (AMD, AMD Radeon RX 580 Series (radeonsi polaris10 LLVM 15.0.7) (0x000067DF) OpenGL ES 3.2 Mesa 23.2.1)",
+    "maxTextureSize": 16384,
+    "maxViewportDims": [16384, 16384],
+    "maxRenderbufferSize": 16384
+  },
+  {
+    "os": "linux",
+    "vendor": "Google Inc. (Mesa)",
+    "renderer": "ANGLE (Mesa, llvmpipe (LLVM 15.0.7, 256 bits))",
+    "maxTextureSize": 8192,
+    "maxViewportDims": [8192, 8192],
+    "maxRenderbufferSize": 8192
+  }
+]

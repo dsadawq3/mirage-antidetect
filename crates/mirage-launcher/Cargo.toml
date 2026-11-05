@@ -1,0 +1,18 @@
+[package]
+name = "mirage-launcher"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = "0.21"
+futures-util = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"
+rand = "0.8"
+mirage-core = { path = "../mirage-core" }
+
+[dev-dependencies]
+tempfile = "3"

@@ -1,0 +1,10 @@
+/target
+*.mprof
+.vault.salt
+.DS_Store
+Thumbs.db
+*.log
+node_modules/
+dist/
+# Keep the UI frontend bundle (ui/dist) tracked; only the root release dump is ignored.
+!ui/dist/

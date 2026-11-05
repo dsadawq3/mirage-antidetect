@@ -1,0 +1,5 @@
+# Rust toolchain for the Mirage workspace.
+# CI (/.github/workflows/ci.yml) installs exactly what this file pins.
+
+[toolchain]
+channel = "stable"

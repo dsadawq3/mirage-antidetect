@@ -1,0 +1,5 @@
+# Tauri build artifacts for the UI crate.
+# NOTE: ui/dist/ (the frontend bundle) is intentionally tracked; it is the
+# source of truth for the frontend and is served directly by the webview.
+/src-tauri/target/
+/src-tauri/gen/

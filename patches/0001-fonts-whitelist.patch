@@ -1,0 +1,257 @@
+# =============================================================================
+# Mirage native patch 0001 — fonts whitelist
+# Target tag: 131.0.6778.85 (verify every anchor against this checkout)
+# =============================================================================
+#
+# WHAT
+#   Font enumeration is a measurement-side channel: a probe renders text with
+#   `font-family: "<candidate>", monospace` and compares rendered metrics.
+#   Closing it from JS is impossible without breaking rendering (see
+#   inject/README.md, "Что сознательно НЕ перехватывается").
+#
+#   This patch gates Blink's system font resolution (FontCache::GetFontData)
+#   with the whitelist from MIRAGE_FP_CONFIG ("fonts" field; same JSON schema
+#   as window.__MIRAGE_FP__). A family outside the whitelist returns "not
+#   found", so the CSS font matcher advances to the next family exactly as it
+#   does for a font that is not installed — fallback metrics are identical to
+#   an absent font. Families inside the whitelist resolve natively. Without
+#   MIRAGE_FP_CONFIG the patch is completely inert.
+#
+# WHERE (candidates, in order of preference — block 3 resolves by signature):
+#   1. third_party/blink/renderer/platform/fonts/font_cache.cc
+#      — cross-platform entry point for family-name -> font resolution.
+#        Search signals:
+#          grep -n "FontCache::GetFontData" third_party/blink/renderer/platform/fonts/font_cache.cc
+#          grep -n "FamilyShouldBeIgnored" third_party/blink/renderer/platform/fonts/font_cache.cc
+#            (if this helper exists in the tag, the gate belongs inside it —
+#             it is the upstream hook for "family must resolve as absent")
+#   2. third_party/blink/renderer/core/css/css_font_selector.cc
+#      — CSS-side dispatcher (web fonts first, then FontCache).
+#        Search signal: grep -n "GetFontData" third_party/blink/renderer/core/css/css_font_selector.cc
+#   3. third_party/blink/renderer/platform/fonts/win/font_cache_win.cc
+#      — Windows-specific font creation; NOT the right gate (too low: generic
+#        families are already resolved by then), but the source of truth for
+#        the default standard/fixed fonts used in the always-allowed list.
+#        Search signal: grep -n "Segoe UI" third_party/blink/renderer/platform/fonts/win/font_cache_win.cc
+#
+# KNOWN RESIDUALS (documented in patches/README.md, intentional):
+#   - PlatformFallbackFontForCharacter (per-character fallback) is NOT gated:
+#     blocking it would break CJK/emoji rendering on realistic pages. Profile
+#     font lists are realistic full OS sets (fp-db/fonts.json), so the
+#     whitelist already contains the fallback fonts of a real machine.
+#   - local() in @font-face resolves through the same gate: a local() source
+#     naming a non-whitelisted family fails — consistent with "not installed".
+#   - document.fonts.check() consults the same resolution path and reports
+#     blocked families as unavailable — consistent with "not installed".
+
+MIRAGE-PATCH: 0001
+MIRAGE-TITLE: Fonts whitelist — native font enumeration gate
+MIRAGE-TARGET: 156.0.8078.80
+MIRAGE-DESCRIPTION: anchors drafted against the 131 source layout — expect signature refusals on the 156 line, realign from the printed context dumps
+MIRAGE-DESCRIPTION: Gates FontCache::GetFontData with the profile whitelist from MIRAGE_FP_CONFIG.
+MIRAGE-DESCRIPTION: Block 1 adds includes, block 2 the mirage helper namespace, block 3 the resolution gate.
+
+# --- Block 1: includes in font_cache.cc --------------------------------------
+# The FROM line is the file's own-header include (blink include style is the
+# full path from the renderer root). If the tag uses a different first
+# include, adjust FROM to the file's first #include line — the only
+# requirement is a unique anchor near the top of the include block.
+
+MIRAGE-BLOCK
+MIRAGE-FILE: third_party/blink/renderer/platform/fonts/font_cache.cc
+MIRAGE-SIGNATURE: #include "third_party/blink/renderer/platform/fonts/font_cache\.h"
+MIRAGE-VERIFY: Confirm the own-header include style in this tag (full path vs short) and adjust FROM if needed.
+MIRAGE-REPLACE-FROM:
+#include "third_party/blink/renderer/platform/fonts/font_cache.h"
+MIRAGE-REPLACE-TO:
+#include "third_party/blink/renderer/platform/fonts/font_cache.h"
+// <<<MIRAGE(fonts-whitelist)
+#include <cctype>
+#include <cstdio>
+#include <cstdlib>
+#include <string>
+#include <unordered_set>
+// >>>MIRAGE(fonts-whitelist)
+MIRAGE-ENDBLOCK
+
+# --- Block 2: mirage helper namespace in font_cache.cc -----------------------
+# Inserted right after `namespace blink {` (blink::mirage). All helpers are
+# `inline` and self-contained (std + WTF types only), so they are ODR-safe
+# even though other patch files declare sibling `namespace mirage` scopes.
+
+MIRAGE-BLOCK
+MIRAGE-FILE: third_party/blink/renderer/platform/fonts/font_cache.cc
+MIRAGE-SIGNATURE: ^namespace blink \{
+MIRAGE-VERIFY: The anchor `namespace blink {` must occur exactly once in the file (it does in every blink platform file).
+MIRAGE-REPLACE-FROM:
+namespace blink {
+MIRAGE-REPLACE-TO:
+namespace blink {
+// <<<MIRAGE(fonts-whitelist)
+// Font whitelist from MIRAGE_FP_CONFIG (see patches/README.md). The env var
+// points at a file with the same JSON the JS layer receives as
+// window.__MIRAGE_FP__; only the "fonts" array is consumed here. Inert
+// without the variable: stock font resolution, byte for byte.
+namespace mirage {
+
+// True when a Mirage profile is active.
+inline bool ProfileActive() {
+  static const bool active = [] {
+    const char* config_path = std::getenv("MIRAGE_FP_CONFIG");
+    return config_path != nullptr && *config_path != '\0';
+  }();
+  return active;
+}
+
+// The profile's "fonts" array, lowercased. Empty when inactive or unreadable
+// — in that state nothing is blocked. Minimal scanner by design: the
+// launcher emits canonical JSON and Blink must not grow a JSON dependency
+// for this.
+inline const std::unordered_set<std::string>& FontWhitelist() {
+  static const std::unordered_set<std::string>* const whitelist = [] {
+    auto* const set = new std::unordered_set<std::string>();
+    const char* config_path = std::getenv("MIRAGE_FP_CONFIG");
+    if (config_path == nullptr || *config_path == '\0') {
+      return set;
+    }
+    std::FILE* const file = std::fopen(config_path, "rb");
+    if (file == nullptr) {
+      return set;
+    }
+    std::string json;
+    char buffer[4096];
+    size_t read;
+    while ((read = std::fread(buffer, 1, sizeof(buffer), file)) > 0) {
+      json.append(buffer, read);
+    }
+    std::fclose(file);
+
+    // Locate "fonts" : [ ... ] and collect the string elements.
+    const size_t key = json.find("\"fonts\"");
+    if (key == std::string::npos) {
+      return set;
+    }
+    const size_t open = json.find('[', key);
+    if (open == std::string::npos) {
+      return set;
+    }
+    size_t pos = open + 1;
+    while (pos < json.size()) {
+      const char c = json[pos];
+      if (c == ']') {
+        break;
+      }
+      if (c == '"') {
+        std::string name;
+        ++pos;
+        while (pos < json.size() && json[pos] != '"') {
+          if (json[pos] == '\\' && pos + 1 < json.size()) {
+            ++pos;  // keep the escaped character verbatim
+          }
+          name.push_back(json[pos]);
+          ++pos;
+        }
+        if (pos < json.size()) {
+          ++pos;  // closing quote
+        }
+        for (char& ch : name) {
+          ch = static_cast<char>(::tolower(static_cast<unsigned char>(ch)));
+        }
+        if (!name.empty()) {
+          set->insert(name);
+        }
+      } else {
+        ++pos;
+      }
+    }
+    return set;
+  }();
+  return *whitelist;
+}
+
+// Families that must always resolve, regardless of the whitelist: CSS
+// generic keywords (they can reach the font cache verbatim from
+// font-family lists) and Blink's own default standard/fixed fonts.
+// Blocking those would break rendering instead of hiding a signal.
+inline bool IsAlwaysAllowedFontFamily(const std::string& lower_family) {
+  static const std::unordered_set<std::string> kAlwaysAllowed = {
+      "serif",        "sans-serif",    "monospace",     "cursive",
+      "fantasy",      "system-ui",     "ui-serif",      "ui-sans-serif",
+      "ui-monospace", "ui-rounded",    "math",          "emoji",
+      "fangsong",     "inherit",       "initial",
+      // Blink default standard/fixed fonts on Windows.
+      // MIRAGE-VERIFY: cross-check the defaults for this tag in
+      // third_party/blink/renderer/platform/fonts/win/font_cache_win.cc
+      // and content/public/common/web_preferences.h.
+      "times new roman", "courier new", "segoe ui",
+      "tahoma", "microsoft sans serif", "lucida sans unicode",
+  };
+  if (lower_family.empty()) {
+    return true;
+  }
+  return kAlwaysAllowed.count(lower_family) != 0;
+}
+
+// Gate for FontCache::GetFontData: true when the family must behave exactly
+// like a font that is not installed on this machine.
+inline bool FontFamilyBlocked(const WTF::AtomicString& family) {
+  if (!ProfileActive()) {
+    return false;
+  }
+  const std::string lower = WTF::String(family).LowerASCII().Utf8();
+  if (IsAlwaysAllowedFontFamily(lower)) {
+    return false;
+  }
+  const std::unordered_set<std::string>& whitelist = FontWhitelist();
+  if (whitelist.empty()) {
+    return false;  // profile carries no font data: gate stays off
+  }
+  return whitelist.count(lower) == 0;
+}
+
+}  // namespace mirage
+// >>>MIRAGE(fonts-whitelist)
+MIRAGE-ENDBLOCK
+
+# --- Block 3: the resolution gate in FontCache::GetFontData ------------------
+# FROM is the function head as authored against the 131 line: a three-line
+# wrapped signature (FontDescription, family, alternate-name retry flag)
+# returning scoped_refptr<SimpleFontData>. If the tag differs (different
+# return type ownership, parameter set, or wrapping), fix FROM to the real
+# head — the gate must be the FIRST logic in the function body, before any
+# platform lookup, and after any existing empty-family early returns.
+#
+# If the block refuses because the head does not match:
+#   grep -n -A3 "FontCache::GetFontData" third_party/blink/renderer/platform/fonts/font_cache.cc
+#   grep -rn "FamilyShouldBeIgnored" third_party/blink/renderer/platform/fonts/font_cache.cc
+# and either fix FROM or, if FamilyShouldBeIgnored exists, move the gate into
+# that helper instead (block 2 already provides mirage::FontFamilyBlocked).
+
+MIRAGE-BLOCK
+MIRAGE-FILE: third_party/blink/renderer/platform/fonts/font_cache.cc
+MIRAGE-SIGNATURE: ^scoped_refptr<SimpleFontData> FontCache::GetFontData\(
+MIRAGE-VERIFY: Confirm the exact GetFontData head (return type, parameter list, wrapping) in this tag before applying.
+MIRAGE-VERIFY: Confirm generic family names actually reach this function in this tag (they are allow-listed defensively either way).
+MIRAGE-REPLACE-FROM:
+scoped_refptr<SimpleFontData> FontCache::GetFontData(
+    const FontDescription& font_description,
+    const AtomicString& family,
+    bool checking_alternate_font_name_for_font_family) {
+MIRAGE-REPLACE-TO:
+scoped_refptr<SimpleFontData> FontCache::GetFontData(
+    const FontDescription& font_description,
+    const AtomicString& family,
+    bool checking_alternate_font_name_for_font_family) {
+  // <<<MIRAGE(fonts-whitelist)
+  // Families outside the active profile's "fonts" list resolve as "not
+  // found": nullptr makes the CSS font matcher continue with the next
+  // family in the font-family chain — identical to an absent font, so
+  // width/height measurement probes cannot tell the difference. Allowed
+  // families resolve natively. The alternate-name retry is never blocked,
+  // so alias resolution keeps working for allowed families.
+  if (!checking_alternate_font_name_for_font_family &&
+      mirage::FontFamilyBlocked(family)) {
+    return nullptr;
+  }
+  // >>>MIRAGE(fonts-whitelist)
+MIRAGE-ENDBLOCK

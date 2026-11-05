@@ -1,0 +1,6 @@
+# rustfmt configuration for the Mirage workspace.
+# Enforced by CI (`cargo fmt --all -- --check`) and scripts/smoke.ps1.
+
+edition = "2021"
+hard_tabs = false
+max_width = 100

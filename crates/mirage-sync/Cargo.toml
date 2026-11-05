@@ -1,0 +1,30 @@
+[package]
+name = "mirage-sync"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Mirage profile sync server: axum + SQLite REST API keyed by Bearer API keys"
+
+[dependencies]
+axum = "0.8"
+tokio = { version = "1", features = ["full"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"
+anyhow = "1"
+rand = "0.8"
+sha2 = "0.10"
+hex = "0.4"
+aes-gcm = "0.10"
+argon2 = "0.5"
+serde_urlencoded = "0.7"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# In-process router tests drive the service with tower::ServiceExt::oneshot.
+[dev-dependencies]
+tower = { version = "0.5", features = ["util"] }
+http-body-util = "0.1"
+tempfile = "3"

@@ -1,0 +1,18 @@
+[package]
+name = "mirage-vault"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Mirage encrypted profile storage: Argon2id + AES-256-GCM .mprof files with atomic writes"
+
+[dependencies]
+aes-gcm = "0.10"
+argon2 = "0.5"
+rand = "0.8"
+serde = "1"
+serde_json = "1"
+thiserror = "1"
+mirage-core = { path = "../mirage-core" }
+
+[dev-dependencies]
+tempfile = "3"

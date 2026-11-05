@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>Mirage</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app" id="app">
+    <!-- ── Desktop shell: sidebar + main ─────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <span class="brand__mark" data-icon="layers" aria-hidden="true"></span>
+        <span class="brand__text">Mirage</span>
+      </div>
+      <nav class="nav" id="nav" aria-label="Основная навигация">
+        <button class="nav__item" data-route="profiles" type="button">
+          <span class="nav__icon" data-icon="grid" aria-hidden="true"></span>
+          <span class="nav__label">Профили</span>
+        </button>
+        <button class="nav__item" data-route="cookies" type="button">
+          <span class="nav__icon" data-icon="cookie" aria-hidden="true"></span>
+          <span class="nav__label">Cookies</span>
+        </button>
+        <button class="nav__item" data-route="import" type="button">
+          <span class="nav__icon" data-icon="download" aria-hidden="true"></span>
+          <span class="nav__label">Импорт</span>
+        </button>
+        <button class="nav__item" data-route="settings" type="button">
+          <span class="nav__icon" data-icon="cog" aria-hidden="true"></span>
+          <span class="nav__label">Настройки</span>
+        </button>
+      </nav>
+      <div class="sidebar__foot">
+        <button class="btn btn--ghost btn--block" id="health-refresh" type="button" title="Обновить статус сервера">
+          <span class="dot" id="health-dot" data-state="unknown"></span>
+          <span id="health-text">Проверка…</span>
+        </button>
+        <div class="sidebar__hint" id="sidebar-hint"></div>
+      </div>
+    </aside>
+
+    <!-- ── Main column ───────────────────────────────────────────────── -->
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar__title">
+          <h1 id="view-title">Профили</h1>
+          <p id="view-sub" class="topbar__sub"></p>
+        </div>
+        <div class="topbar__actions" id="topbar-actions"></div>
+        <div class="topbar__badges">
+          <span class="badge badge--mock" id="mock-badge" hidden>MOCK</span>
+        </div>
+      </header>
+
+      <section class="view" id="view" aria-live="polite"></section>
+    </main>
+  </div>
+
+  <!-- Overlays -->
+  <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+  <div class="modal-root" id="modal-root"></div>
+
+  <noscript>
+    <div class="noscript">Для работы интерфейса нужен JavaScript.</div>
+  </noscript>
+
+  <script src="mock.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

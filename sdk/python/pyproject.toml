@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mirage"
+version = "0.1.0"
+description = "Python client SDK for the Mirage local API (antidetect browser core)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Mirage" }]
+keywords = ["mirage", "antidetect", "browser", "automation", "adspower", "cdp"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+# No runtime dependencies beyond the standard library on purpose: the SDK talks
+# to a loopback HTTP API and must stay importable in any environment.
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[project.urls]
+Documentation = "https://github.com/mirage/mirage/blob/main/docs/API.md"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+mirage = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

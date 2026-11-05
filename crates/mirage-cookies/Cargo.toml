@@ -1,0 +1,38 @@
+[package]
+name = "mirage-cookies"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Mirage cookie import/export: Netscape cookies.txt and JSON to/from Chromium profile cookie stores"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"
+
+# The Chromium store format and the Local State key are Windows-only (DPAPI).
+# Everything Netscape/JSON is platform independent, so the native pieces are
+# compiled and linked on Windows only. This keeps `cargo build --workspace`
+# green on the Linux CI job as well.
+[target.'cfg(windows)'.dependencies]
+aes-gcm = "0.10"
+rand = "0.8"
+base64 = "0.22"
+sha2 = "0.10"
+rusqlite = { version = "0.32", features = ["bundled"] }
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_Security_Cryptography",
+] }
+
+[dev-dependencies]
+anyhow = "1"
+tempfile = "3"
+
+# The Windows profile tests open the SQLite file directly to check the schema,
+# and the live end-to-end roundtrip spawns a real Chrome through the launcher.
+[target.'cfg(windows)'.dev-dependencies]
+rusqlite = { version = "0.32", features = ["bundled"] }
+mirage-core = { path = "../mirage-core" }
+mirage-launcher = { path = "../mirage-launcher" }
+tokio = { version = "1", features = ["rt-multi-thread", "macros"] }

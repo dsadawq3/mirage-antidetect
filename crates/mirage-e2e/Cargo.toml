@@ -1,0 +1,15 @@
+[package]
+name = "mirage-e2e"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Mirage end-to-end fingerprint checker: offline localhost page + headless-free Chrome run harness"
+
+[dependencies]
+mirage-core = { path = "../mirage-core" }
+mirage-launcher = { path = "../mirage-launcher" }
+tokio = { version = "1", features = ["full"] }
+axum = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+anyhow = "1"

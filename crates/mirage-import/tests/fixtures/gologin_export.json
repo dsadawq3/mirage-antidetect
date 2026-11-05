@@ -1,0 +1,27 @@
+{
+  "id": "66f0c0ffee00000000000001",
+  "name": "gologin-01",
+  "notes": "imported from gologin",
+  "os": "win",
+  "navigator": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36",
+    "resolution": "1920x1080",
+    "language": "en-US",
+    "platform": "Win32",
+    "hardwareConcurrency": 8,
+    "deviceMemory": 8,
+    "maxTouchPoints": 0
+  },
+  "proxy": {
+    "mode": "socks5",
+    "host": "9.9.9.9",
+    "port": 1080,
+    "username": "gluser",
+    "password": "glpass"
+  },
+  "timezone": { "enabled": true, "fillBasedOnIp": false, "timezone": "Europe/London" },
+  "webRTC": { "mode": "real", "enable": true },
+  "webGLMetadata": { "mode": "mask", "vendor": "Google Inc. (Intel)", "renderer": "ANGLE (Intel, ...)" },
+  "folders": ["work"],
+  "devicePixelRatio": 1
+}
