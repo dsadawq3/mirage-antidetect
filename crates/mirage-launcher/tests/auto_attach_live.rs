@@ -47,7 +47,7 @@ async fn new_tab_is_spoofed() {
     // A second, independent browser-level connection used only to create and
     // probe the new tab; the spoofing itself is done by the launcher's own
     // auto-attach task on its own connection.
-    let mut control = CdpClient::attach(&browser.ws_url)
+    let control = CdpClient::attach(&browser.ws_url)
         .await
         .expect("control attach");
     let created = control
@@ -62,7 +62,7 @@ async fn new_tab_is_spoofed() {
     let deadline = Instant::now() + Duration::from_secs(15);
     let mut last = String::new();
     let spoofed = loop {
-        if let Ok(mut page) = CdpClient::attach(&page_ws).await {
+        if let Ok(page) = CdpClient::attach(&page_ws).await {
             if let Ok(result) = page
                 .send(
                     "Runtime.evaluate",

@@ -51,7 +51,7 @@ async fn main() -> anyhow::Result<()> {
         tokio::time::sleep(Duration::from_millis(200)).await;
     };
 
-    let mut cdp = CdpClient::attach(&page.ws_url).await?;
+    let cdp = CdpClient::attach(&page.ws_url).await?;
     cdp.send("Page.enable", json!({})).await?;
     // Localhost origin => secure context => userAgentData is exposed, and no
     // external network is needed: the DevTools endpoint serves the page.
